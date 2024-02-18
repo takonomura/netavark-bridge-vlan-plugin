@@ -1,7 +1,9 @@
 [package]
 name = "netavark-bridge-vlan-plugin"
 version = "0.1.0"
+authors = ["takonomura"]
 edition = "2021"
+repository = "https://github.com/takonomura/netavark-bridge-vlan-plugin"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
