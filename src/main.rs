@@ -163,7 +163,7 @@ impl Plugin for Exec {
             .as_ref()
             .and_then(|opts| opts.get("tagged_vlans"))
             .map(|s| {
-                s.split(",")
+                s.split(',')
                     .map(|i| i.parse::<u16>())
                     .collect::<Result<Vec<_>, _>>()
             })
@@ -254,11 +254,10 @@ impl Plugin for Exec {
         let gateways: Vec<IpNet> = subnets
             .iter()
             .filter_map(|subnet| {
-                if let Some(gateway) = subnet.gateway {
-                    Some(IpNet::new(gateway, subnet.subnet.prefix_len()).unwrap())
-                } else {
-                    None
-                }
+                subnet.gateway.map(|gw| {
+                    let prefix_len = subnet.subnet.prefix_len();
+                    IpNet::new(gw, prefix_len).unwrap()
+                })
             })
             .collect();
         add_default_routes(&mut netns.netlink, &gateways, metric)?;
