@@ -1,8 +1,10 @@
 use ipnet::IpNet;
 use netavark::{
+    exec_netns,
     network::{
         core_utils::{
-            add_default_routes, create_route_list, open_netlink_sockets, parse_option, CoreUtils,
+            add_default_routes, create_route_list, join_netns, open_netlink_sockets, parse_option,
+            CoreUtils,
         },
         netlink, types,
     },
@@ -157,14 +159,20 @@ impl Plugin for Exec {
         let mtu = parse_option(&opts.network.options, "mtu")?.unwrap_or(0);
         let metric = parse_option(&opts.network.options, "metric")?;
         let vlan = parse_option(&opts.network.options, "vlan")?;
-        let tagged_vlans = opts
-            .network
-            .options
-            .as_ref()
+        let options = opts.network.options.as_ref();
+        let tagged_vlans = options
             .and_then(|opts| opts.get("tagged_vlans"))
             .map(|s| {
                 s.split(',')
                     .map(|i| i.parse::<u16>())
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .transpose()?;
+        let sysctls = options
+            .and_then(|opts| opts.get("sysctls"))
+            .map(|s| {
+                s.split(' ')
+                    .map(|s| s.split_once('=').ok_or("invalid sysctl"))
                     .collect::<Result<Vec<_>, _>>()
             })
             .transpose()?;
@@ -219,6 +227,18 @@ impl Plugin for Exec {
             for vlan in tagged_vlans.unwrap_or_default().into_iter() {
                 socket.bridge_vlan_add(*host_link, vlan, true)?;
             }
+        }
+
+        if let Some(sysctls) = sysctls {
+            exec_netns!(host.file, netns.file, res, {
+                for (k, v) in sysctls.into_iter() {
+                    let k = "/proc/sys/".to_owned()
+                        + &k.replace('.', "/").replace("IFNAME", &interface_name);
+                    CoreUtils::apply_sysctl_value(k, v)?;
+                }
+                Ok::<(), Box<dyn Error>>(())
+            });
+            res?;
         }
 
         // Set link up on host
