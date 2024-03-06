@@ -171,7 +171,7 @@ impl Plugin for Exec {
         let sysctls = options
             .and_then(|opts| opts.get("sysctls"))
             .map(|s| {
-                s.split(' ')
+                s.split(';')
                     .map(|s| s.split_once('=').ok_or("invalid sysctl"))
                     .collect::<Result<Vec<_>, _>>()
             })
