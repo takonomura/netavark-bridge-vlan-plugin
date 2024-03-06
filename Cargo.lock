@@ -1410,7 +1410,7 @@ dependencies = [
 
 [[package]]
 name = "netavark-bridge-vlan-plugin"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "ipnet",
  "netavark",
